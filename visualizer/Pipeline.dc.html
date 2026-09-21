@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>neuralzip pipeline</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;color:#141413;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#B5552F}a:hover{color:#8F4222}
+</style>
+</helmet>
+<div style="width: 1280px; height: 720px; box-sizing: border-box; padding: 56px 64px; display: flex; flex-direction: column; gap: 36px; background: #FAF9F5;">
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6A66;">neuralzip · how it works</div>
+    <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 40px; line-height: 1.1;">Compression is prediction. A better predictor is a smaller file.</h1>
+  </div>
+
+  <div style="display: flex; align-items: stretch; gap: 0;">
+    <div style="width: 150px; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 20px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">Input</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 20px;">byte x<sub style="font-size: 12px;">t</sub></div>
+      <div style="font-size: 13px; color: #6B6A66; line-height: 1.4;">one at a time, with everything before it</div>
+    </div>
+
+    <svg width="52" height="120" viewBox="0 0 52 120" aria-hidden="true" style="align-self: center;"><path d="M4 60 H40 M32 52 L40 60 L32 68" fill="none" stroke="#141413" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+
+    <div style="width: 330px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-left: 4px solid #2F7F9A; border-radius: 12px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #2F7F9A;">Expert 1 · context model (PPM)</div>
+        <div style="font-size: 14px; line-height: 1.4;">Counts what followed the last 0–24 bytes; Witten–Bell escapes blend the orders.</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #45443F;">p<sub>k</sub> = (n<sub>k</sub>(x) + e<sub>k</sub>·p<sub>k−1</sub>(x)) / (N<sub>k</sub> + e<sub>k</sub>)</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-left: 4px solid #6B5CA5; border-radius: 12px;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B5CA5;">Expert 2 · GRU, trained online</div>
+        <div style="font-size: 14px; line-height: 1.4;">128 hidden units, random init. Every 16 bytes: BPTT + one Adam step.</div>
+        <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #45443F;">h<sub>t</sub> = GRU(h<sub>t−1</sub>, x<sub>t−1</sub>) · p = softmax(W<sub>o</sub>h<sub>t</sub>)</div>
+      </div>
+    </div>
+
+    <svg width="52" height="120" viewBox="0 0 52 120" aria-hidden="true" style="align-self: center;"><path d="M4 60 H40 M32 52 L40 60 L32 68" fill="none" stroke="#141413" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+
+    <div style="width: 270px; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 20px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-left: 4px solid #D97757; border-radius: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #B5552F;">Geometric mixer</div>
+      <div style="font-size: 14px; line-height: 1.4;">Log-linear blend; weights learned by gradient descent on the code length. Can be sharper than either expert.</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #45443F;">p(x) ∝ Π<sub>i</sub> p<sub>i</sub>(x)<sup>w<sub>i</sub></sup></div>
+    </div>
+
+    <svg width="52" height="120" viewBox="0 0 52 120" aria-hidden="true" style="align-self: center;"><path d="M4 60 H40 M32 52 L40 60 L32 68" fill="none" stroke="#141413" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+
+    <div style="width: 220px; display: flex; flex-direction: column; justify-content: center; gap: 6px; padding: 20px; box-sizing: border-box; background: #141413; color: #FAF9F5; border-radius: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #C9C6BE;">Arithmetic coder</div>
+      <div style="font-size: 14px; line-height: 1.4;">Spends exactly the information the model didn't already have.</div>
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #FAF9F5;">bits = −log<sub>2</sub> p(x<sub>t</sub>)</div>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 24px;">
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; padding: 18px 22px; box-sizing: border-box; border: 1px dashed #B8B4AA; border-radius: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">Why nothing else is transmitted</div>
+      <div style="font-size: 14px; line-height: 1.5;">After each byte, every expert and the mixer update from the byte that actually arrived. The decoder sees the same bytes in the same order, so it runs the identical computation and rebuilds the same weights. The archive is the coded bits, a 4-byte magic, a length and a CRC — no model.</div>
+    </div>
+    <div style="width: 380px; display: flex; flex-direction: column; gap: 6px; padding: 18px 22px; box-sizing: border-box; border: 1px dashed #B8B4AA; border-radius: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">Shannon's bound, made concrete</div>
+      <div style="font-size: 14px; line-height: 1.5;">Total file size ≈ Σ<sub>t</sub> −log<sub>2</sub> p(x<sub>t</sub>) + 2 bits. Lower cross-entropy is not a proxy for compression; it <em>is</em> compression.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

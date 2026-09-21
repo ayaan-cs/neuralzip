@@ -1,0 +1,245 @@
+[
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "gzip -9",
+  "size": 145623,
+  "bpb": 2.2510158693967774,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "bzip2",
+  "size": 104957,
+  "bpb": 1.622407673267805,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "xz (lzma)",
+  "size": 102164,
+  "bpb": 1.5792339484906392,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "order0",
+  "size": 303815,
+  "bpb": 4.6963212292068,
+  "enc_s": 3.774809699971229,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "ctx4",
+  "size": 112480,
+  "bpb": 1.7386969434069448,
+  "enc_s": 10.625047800014727,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "ctx8",
+  "size": 104917,
+  "bpb": 1.6217893599877884,
+  "enc_s": 13.920483599998988,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "ctx",
+  "size": 92514,
+  "bpb": 1.4300658696866118,
+  "enc_s": 14.2780686999904,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "gru",
+  "size": 125156,
+  "bpb": 1.9346404218442352,
+  "enc_s": 38.88816360000055,
+  "ok": true
+ },
+ {
+  "corpus": "english.txt",
+  "n": 517537,
+  "model": "nz",
+  "size": 85352,
+  "bpb": 1.3193568768996227,
+  "enc_s": 55.67582730005961,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "gzip -9",
+  "size": 68188,
+  "bpb": 1.8611341405580972,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "bzip2",
+  "size": 57467,
+  "bpb": 1.5685134577264648,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "xz (lzma)",
+  "size": 60160,
+  "bpb": 1.642016628966609,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "order0",
+  "size": 159603,
+  "bpb": 4.3562297212925145,
+  "enc_s": 2.1354210999561474,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "ctx4",
+  "size": 61030,
+  "bpb": 1.6657625476368376,
+  "enc_s": 6.305522499955259,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "ctx8",
+  "size": 59198,
+  "bpb": 1.6157596476324023,
+  "enc_s": 8.687119700014591,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "ctx",
+  "size": 53361,
+  "bpb": 1.4564436392667424,
+  "enc_s": 8.800189199973829,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "gru",
+  "size": 63744,
+  "bpb": 1.7398388962241942,
+  "enc_s": 20.86492590000853,
+  "ok": true
+ },
+ {
+  "corpus": "python.txt",
+  "n": 293103,
+  "model": "nz",
+  "size": 49166,
+  "bpb": 1.341944640621215,
+  "enc_s": 31.789618899929337,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "gzip -9",
+  "size": 32784,
+  "bpb": 8.00390625,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "bzip2",
+  "size": 33257,
+  "bpb": 8.119384765625,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "xz (lzma)",
+  "size": 32828,
+  "bpb": 8.0146484375,
+  "enc_s": 0.0,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "order0",
+  "size": 32862,
+  "bpb": 8.02294921875,
+  "enc_s": 0.26501099998131394,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "ctx4",
+  "size": 34489,
+  "bpb": 8.420166015625,
+  "enc_s": 0.5149106999160722,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "ctx8",
+  "size": 34489,
+  "bpb": 8.420166015625,
+  "enc_s": 0.541598999989219,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "ctx",
+  "size": 33324,
+  "bpb": 8.1357421875,
+  "enc_s": 0.5664475999074057,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "gru",
+  "size": 32952,
+  "bpb": 8.044921875,
+  "enc_s": 2.374933100072667,
+  "ok": true
+ },
+ {
+  "corpus": "random.bin",
+  "n": 32768,
+  "model": "nz",
+  "size": 32776,
+  "bpb": 8.001953125,
+  "enc_s": 3.1996859000064433,
+  "ok": true
+ }
+]

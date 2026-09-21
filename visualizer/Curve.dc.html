@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>neuralzip learning curve</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;color:#141413;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#B5552F}a:hover{color:#8F4222}
+</style>
+</helmet>
+<div style="width: 1280px; height: 640px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: #FAF9F5;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6A66;">neuralzip · learning while compressing</div>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 32px; line-height: 1.1;">The neural net starts random and gets cheaper with every kilobyte</h1>
+    </div>
+    <div style="display: flex; gap: 18px; align-items: center;">
+      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="{{ l.swatch }}"></span>
+          <span style="font-size: 13px; color: #45443F;">{{ l.name }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 500; color: #141413;">{{ l.val }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 20px 20px 12px 20px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+    <svg width="1144" height="440" viewBox="0 0 1144 440" role="img" aria-label="Bits per byte over the file for each predictor" style="display: block; font-family: 'IBM Plex Mono', monospace;">
+      <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5">
+        <line x1="56" x2="1124" y1="{{ t.y }}" y2="{{ t.y }}" stroke="#EFECE5" stroke-width="1"></line>
+        <text x="46" y="{{ t.ty }}" text-anchor="end" font-size="11" fill="#6B6A66">{{ t.label }}</text>
+      </sc-for>
+      <sc-for list="{{ xTicks }}" as="t" hint-placeholder-count="6">
+        <text x="{{ t.x }}" y="428" text-anchor="middle" font-size="11" fill="#6B6A66">{{ t.label }}</text>
+      </sc-for>
+      <line x1="56" x2="1124" y1="{{ gzipY }}" y2="{{ gzipY }}" stroke="#6B6A66" stroke-width="1.5" stroke-dasharray="6 5"></line>
+      <text x="1120" y="{{ gzipLabelY }}" text-anchor="end" font-size="11" fill="#6B6A66">gzip −9 (whole file)</text>
+      <sc-for list="{{ series }}" as="s" hint-placeholder-count="3">
+        <path d="{{ s.d }}" fill="none" stroke="{{ s.color }}" stroke-width="{{ s.width }}" stroke-linejoin="round" stroke-linecap="round"></path>
+      </sc-for>
+      <text x="56" y="14" font-size="11" fill="#6B6A66">bits / byte per 10 KB segment</text>
+    </svg>
+  </div>
+  <div style="font-size: 13px; color: #6B6A66; line-height: 1.5;">Each point is the average code length over one 10 KB segment of the English corpus, measured as the models were compressing it in a single pass. The mixture is below both experts almost everywhere: the weights are learned online too.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":640}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { trace: null };
+  }
+  componentDidMount() {
+    fetch('/_blob/3a4b03cacd440ed5741d873c25cc3975').then(function (r) { return r.json(); }).then((t) => {
+      this.setState({ trace: t });
+    }).catch(() => {});
+  }
+  renderVals() {
+    const t = this.state.trace;
+    const colors = { ctx: '#2F7F9A', gru: '#6B5CA5', mix: '#B5552F' };
+    const names = { ctx: 'Context model', gru: 'GRU (online)', mix: 'Mixture' };
+    const L = 56, R = 1124, T = 24, B = 404;
+    const yMin = 0.8, yMax = 4.0;
+    const y = (v) => B - (Math.max(yMin, Math.min(yMax, v)) - yMin) / (yMax - yMin) * (B - T);
+    let series = [], legend = [], xTicks = [], gzipY = y(2.4), gzipLabelY = y(2.4) - 6;
+    const yTicks = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0].map((v) => ({ y: y(v), ty: y(v) + 4, label: v.toFixed(1) }));
+    if (t) {
+      const keys = t.experts.concat(['mix']);
+      const n = t.curve[keys[0]].length;
+      const x = (i) => L + (i + 0.5) / n * (R - L);
+      series = keys.map((k) => ({
+        d: t.curve[k].map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' '),
+        color: colors[k] || '#141413',
+        width: k === 'mix' ? 3 : 2
+      }));
+      legend = keys.map((k) => ({
+        name: names[k] || k,
+        val: t.overall[k].toFixed(3) + ' bpb',
+        swatch: 'display: inline-block; width: 18px; height: 4px; border-radius: 2px; background: ' + (colors[k] || '#141413') + ';'
+      }));
+      legend.push({ name: 'gzip −9', val: t.gzip_bpb.toFixed(3) + ' bpb', swatch: 'display: inline-block; width: 18px; height: 0; border-top: 2px dashed #6B6A66;' });
+      gzipY = y(t.gzip_bpb);
+      gzipLabelY = gzipY - 6;
+      const step = Math.max(1, Math.round(n / 8));
+      for (let i = 0; i < n; i += step) xTicks.push({ x: x(i), label: Math.round((i + 1) * t.segment / 1000) + ' KB' });
+    }
+    return { series: series, legend: legend, xTicks: xTicks, yTicks: yTicks, gzipY: gzipY, gzipLabelY: gzipLabelY };
+  }
+}
+</script>
+</body>
+</html>

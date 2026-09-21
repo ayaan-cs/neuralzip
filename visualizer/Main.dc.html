@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>neuralzip live replay</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#FAF9F5;color:#141413;font-family:'IBM Plex Sans',system-ui,sans-serif}
+a{color:#B5552F}a:hover{color:#8F4222}
+</style>
+</helmet>
+<div style="width: 1280px; height: 820px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 20px; background: #FAF9F5;">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;">
+    <div style="display: flex; flex-direction: column; gap: 6px;">
+      <div style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B6A66;">neuralzip · live replay of a real trace</div>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 32px; line-height: 1.1;">Watching the model pay for each byte</h1>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button onClick="{{ toggle }}" aria-label="Play or pause" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #141413; background: #141413; color: #FAF9F5; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer;">{{ playLabel }}</button>
+      <button onClick="{{ step }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #B8B4AA; background: #FFFFFF; color: #141413; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; cursor: pointer;">Step</button>
+      <button onClick="{{ reset }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #B8B4AA; background: #FFFFFF; color: #141413; font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; cursor: pointer;">Reset</button>
+      <button onClick="{{ cycleSpeed }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #B8B4AA; background: #FFFFFF; color: #141413; font-family: 'IBM Plex Mono', monospace; font-size: 14px; cursor: pointer;">{{ speedLabel }}</button>
+    </div>
+  </div>
+
+  <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+    <div style="font-size: 14px; color: #6B6A66;">Loading trace…</div>
+  </sc-if>
+
+  <div style="display: flex; gap: 24px; flex-grow: 1; min-height: 0;">
+    <div style="width: 620px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline;">
+        <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">Text · colored by bits paid</div>
+        <div style="font-size: 12px; color: #6B6A66; display: flex; gap: 10px; align-items: center;">
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #DDEBD3;"></span><span>&lt; 1 bit</span>
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #F5D7B0;"></span><span>~3 bits</span>
+          <span style="display: inline-block; width: 12px; height: 12px; border-radius: 3px; background: #E8927C;"></span><span>&gt; 6 bits</span>
+        </div>
+      </div>
+      <div style="flex-grow: 1; padding: 16px 18px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 14.5px; line-height: 1.75; white-space: pre-wrap; word-break: break-all; overflow: hidden;"><sc-for list="{{ chars }}" as="c" hint-placeholder-count="40"><span style="{{ c.style }}">{{ c.ch }}</span></sc-for></div>
+      <div style="display: flex; gap: 14px;">
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">This byte cost</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 500; color: #141413;">{{ bitsNow }} <span style="font-size: 13px; color: #6B6A66;">bits</span></div>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">Running average</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 500; color: #B5552F;">{{ avgBpb }} <span style="font-size: 13px; color: #6B6A66;">bits / byte</span></div>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+          <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">gzip −9 on this file</div>
+          <div style="font-family: 'IBM Plex Mono', monospace; font-size: 26px; font-weight: 500; color: #6B6A66;">{{ gzipBpb }} <span style="font-size: 13px; color: #6B6A66;">bits / byte</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px;">
+      <div style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: #6B6A66;">What each predictor expected next · top 6</div>
+      <sc-for list="{{ panels }}" as="p" hint-placeholder-count="3">
+        <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <div style="font-size: 13px; font-weight: 600; color: {{ p.color }};">{{ p.title }}</div>
+            <div style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #6B6A66;">p(actual) = {{ p.pa }} · {{ p.bits }} bits</div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: flex-end; height: 64px;">
+            <sc-for list="{{ p.bars }}" as="b" hint-placeholder-count="6">
+              <div style="width: 74px; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+                <div style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #6B6A66;">{{ b.pct }}</div>
+                <div style="{{ b.style }}"></div>
+                <div style="{{ b.labelStyle }}">{{ b.label }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; box-sizing: border-box; background: #FFFFFF; border: 1px solid #D9D6CF; border-radius: 12px;">
+        <div style="font-size: 13px; font-weight: 600; color: #B5552F;">Mixer weights (learned online)</div>
+        <sc-for list="{{ weights }}" as="w" hint-placeholder-count="2">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 110px; font-size: 12px; color: #45443F;">{{ w.name }}</div>
+            <div style="flex-grow: 1; height: 10px; background: #EFECE5; border-radius: 5px; overflow: hidden;"><div style="{{ w.style }}"></div></div>
+            <div style="width: 44px; text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 12px;">{{ w.val }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { trace: null, idx: 0, playing: false, speedIx: 1 };
+    this.speeds = [{ label: '0.5×', ms: 400 }, { label: '1×', ms: 160 }, { label: '4×', ms: 40 }, { label: '20×', ms: 8 }];
+    this.timer = null;
+  }
+  componentDidMount() {
+    fetch('/_blob/3a4b03cacd440ed5741d873c25cc3975').then(function (r) { return r.json(); }).then((t) => {
+      this.setState({ trace: t, idx: 0 });
+    }).catch(() => {});
+  }
+  componentWillUnmount() { if (this.timer) clearInterval(this.timer); }
+  startTimer() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = setInterval(() => {
+      const t = this.state.trace;
+      if (!t) return;
+      if (this.state.idx >= t.window.length - 1) { this.stop(); return; }
+      this.setState({ idx: this.state.idx + 1 });
+    }, this.speeds[this.state.speedIx].ms);
+  }
+  stop() { if (this.timer) clearInterval(this.timer); this.timer = null; this.setState({ playing: false }); }
+  heat(bits) {
+    // 0 bits -> pale green, ~3 -> sand, 8+ -> clay red
+    const x = Math.max(0, Math.min(1, bits / 8));
+    const stops = [[221, 235, 211], [245, 215, 176], [232, 146, 124]];
+    const seg = x < 0.4 ? [stops[0], stops[1], x / 0.4] : [stops[1], stops[2], (x - 0.4) / 0.6];
+    const c = seg[0].map((v, i) => Math.round(v + (seg[1][i] - v) * seg[2]));
+    return 'rgb(' + c.join(',') + ')';
+  }
+  sym(b) {
+    if (b === 10) return '⏎';
+    if (b === 32) return '␣';
+    if (b === 9) return '⇥';
+    if (b < 32 || b > 126) return '·' + b;
+    return String.fromCharCode(b);
+  }
+  renderVals() {
+    const t = this.state.trace;
+    const idx = this.state.idx;
+    const names = t ? t.experts.concat(['mix']) : ['ctx', 'gru', 'mix'];
+    const titles = { ctx: 'Context model (orders 0–24)', gru: 'GRU, online', mix: 'Geometric mixture' };
+    const colors = { ctx: '#2F7F9A', gru: '#6B5CA5', mix: '#B5552F' };
+    const speed = this.speeds[this.state.speedIx];
+
+    let chars = [], panels = [], weights = [], bitsNow = '–', avgBpb = '–', gzipBpb = '–';
+    if (t) {
+      const w = t.window;
+      const cur = w[idx];
+      let sum = 0;
+      chars = w.map((s, i) => {
+        if (i <= idx) sum += s.bits;
+        let style = 'border-radius: 3px; padding: 1px 0;';
+        if (i < idx) style += ' background: ' + this.heat(s.bits) + ';';
+        else if (i === idx) style += ' background: #141413; color: #FAF9F5;';
+        else style += ' color: #C9C6BE;';
+        const ch = s.b === 10 ? '⏎\n' : (s.b === 32 ? ' ' : (s.b === 9 ? '    ' : (s.b < 32 || s.b > 126 ? '·' : String.fromCharCode(s.b))));
+        return { ch: ch, style: style };
+      });
+      bitsNow = cur.bits.toFixed(2);
+      avgBpb = (sum / (idx + 1)).toFixed(3);
+      gzipBpb = t.gzip_bpb.toFixed(3);
+      panels = names.map((n, k) => {
+        const bars = cur.top[k].map((pair) => {
+          const isActual = pair[0] === cur.b;
+          const h = Math.max(3, Math.round(pair[1] * 46));
+          return {
+            pct: (pair[1] * 100).toFixed(1) + '%',
+            style: 'width: 100%; height: ' + h + 'px; border-radius: 4px 4px 0 0; background: ' + (isActual ? colors[n] : '#D9D6CF') + ';',
+            label: this.sym(pair[0]),
+            labelStyle: "font-family: 'IBM Plex Mono', monospace; font-size: 12px; " + (isActual ? 'font-weight: 600; color: ' + colors[n] + ';' : 'color: #6B6A66;')
+          };
+        });
+        const pa = cur.pa[k];
+        return { title: titles[n] || n, color: colors[n] || '#141413', pa: pa.toFixed(3), bits: (-Math.log2(Math.max(pa, 1e-12))).toFixed(2), bars: bars };
+      });
+      weights = t.experts.map((n, k) => {
+        const v = cur.w[k];
+        const pct = Math.max(0, Math.min(100, Math.round(Math.abs(v) * 100)));
+        return { name: titles[n] ? titles[n].split(' (')[0].split(',')[0] : n, val: v.toFixed(2), style: 'height: 100%; width: ' + pct + '%; background: ' + (colors[n] || '#141413') + '; border-radius: 5px;' };
+      });
+    }
+    return {
+      loading: !t,
+      chars: chars, panels: panels, weights: weights,
+      bitsNow: bitsNow, avgBpb: avgBpb, gzipBpb: gzipBpb,
+      playLabel: this.state.playing ? 'Pause' : 'Play',
+      speedLabel: speed.label,
+      toggle: () => {
+        if (this.state.playing) { this.stop(); return; }
+        if (t && this.state.idx >= t.window.length - 1) this.setState({ idx: 0 });
+        this.setState({ playing: true }, () => this.startTimer());
+      },
+      step: () => { if (t && this.state.idx < t.window.length - 1) this.setState({ idx: this.state.idx + 1 }); },
+      reset: () => { this.stop(); this.setState({ idx: 0 }); },
+      cycleSpeed: () => {
+        const next = (this.state.speedIx + 1) % this.speeds.length;
+        this.setState({ speedIx: next }, () => { if (this.state.playing) this.startTimer(); });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
