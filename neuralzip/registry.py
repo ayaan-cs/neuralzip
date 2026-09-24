@@ -1,5 +1,5 @@
 """Name -> factory for every model the CLI and benchmark can use."""
-from .mixing import GeoMixture
+from .mixing import GeoMixture, byte_class
 from .models import ContextMix, MatchModel, Order0
 from .neural import GRUByteModel
 
@@ -26,8 +26,11 @@ MODELS = {
     "ctx": ladder,
     "gru": lambda: GRUByteModel(**GRU_KW),
     "match": lambda: MatchModel(),
-    # the headline model: context ladder + online GRU + match model, geometrically mixed
-    "nz": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW), MatchModel()], lr=0.005),
+    # the headline model: context ladder + online GRU + match model, geometrically
+    # mixed, with one weight vector per class of the previous byte.  Those per-class
+    # weights are a loss with two experts and a gain with three (see the README).
+    "nz": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW), MatchModel()],
+                             lr=0.005, n_ctx=4, ctx_fn=byte_class),
     # the same without the match model -- kept so its contribution stays measurable
     "nz-nomatch": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW)], lr=0.005),
     # nz plus NNCP-v2-style periodic retraining of the GRU (slower, no gain at <1 MB)
