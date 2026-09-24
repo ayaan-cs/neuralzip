@@ -1,4 +1,5 @@
 import sys, time
+import neuralzip  # noqa: F401  -- before numpy: pins BLAS to one thread
 import numpy as np
 from neuralzip.codec import ideal_bits
 from neuralzip.neural import GRUByteModel

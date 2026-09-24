@@ -138,9 +138,89 @@ class ContextMix:
         self.hist = (self.hist + bytes([b]))[-self.max_order:]
 
 
+class MatchModel:
+    """Predict the byte that followed the last occurrence of the current context.
+
+    A hash of the last `min_len` bytes points at the position just after the
+    most recent occurrence of that string.  While the prediction keeps coming
+    true the match is extended, so a long repeated passage is followed byte by
+    byte at almost no cost.  This is the classical "match model" of the PAQ
+    family, and the mechanism PPM* relies on: unbounded contexts are usually
+    deterministic (Cleary & Teahan 1997).
+
+    The confidence is not assumed, it is learned: hits and misses are counted
+    per match length, so the model discovers for itself how much a 6-byte
+    match is worth against a 30-byte one.  With no match it returns the
+    uniform distribution, which is the honest "no opinion" — and in a
+    geometric mixture a constant vector drops out of the softmax entirely,
+    so the model costs the mixture nothing when it has nothing to say.
+    """
+
+    name = "match"
+    MAXLEN = 32  # match lengths are bucketed up to here for the confidence table
+
+    def __init__(self, min_len: int = 6, table_bits: int = 22):
+        self.min_len = min_len
+        self.mask = (1 << table_bits) - 1
+        self.table = np.full(1 << table_bits, -1, dtype=np.int64)
+        self.hist = bytearray()
+        self.ptr = -1        # index in hist of the byte we are predicting
+        self.mlen = 0        # verified length of the current match
+        self.hits = np.full(self.MAXLEN + 1, 1.0)
+        self.miss = np.full(self.MAXLEN + 1, 1.0)
+        self._pred = -1      # byte predicted at the last predict(), -1 if none
+        self._bucket = -1
+        self._uniform = np.full(256, 1.0 / 256)
+
+    def _hash(self, buf) -> int:
+        h = 0
+        for c in buf:
+            h = (h * 0x2F0FD693 + c + 1) & 0xFFFFFFFF
+        return (h ^ (h >> 15)) & self.mask
+
+    def predict(self):
+        if self.mlen and 0 <= self.ptr < len(self.hist):
+            self._pred = self.hist[self.ptr]
+            self._bucket = min(self.mlen, self.MAXLEN)
+            h, m = self.hits[self._bucket], self.miss[self._bucket]
+            p_hit = min(h / (h + m), 0.9995)
+            p = np.full(256, (1.0 - p_hit) / 255.0)
+            p[self._pred] = p_hit
+            return p
+        self._pred, self._bucket = -1, -1
+        return self._uniform
+
+    def update(self, b):
+        if self._bucket >= 0:
+            if self._pred == b:
+                self.hits[self._bucket] += 1.0
+            else:
+                self.miss[self._bucket] += 1.0
+        if self.mlen:
+            if self.hist[self.ptr] == b:
+                self.ptr += 1
+                self.mlen = min(self.mlen + 1, self.MAXLEN)
+            else:
+                self.mlen, self.ptr = 0, -1
+
+        self.hist.append(b)
+        n = len(self.hist)
+        if n >= self.min_len:
+            k = self.min_len
+            ctx = self.hist[n - k:n]
+            h = self._hash(ctx)
+            if not self.mlen:
+                cand = int(self.table[h])
+                # verify the bytes: a hash collision would predict nonsense
+                if cand >= k and self.hist[cand - k:cand] == ctx:
+                    self.ptr, self.mlen = cand, k
+            self.table[h] = n
+
+
 MODELS = {
     "order0": lambda: Order0(),
     "ctx2": lambda: ContextMix(max_order=2),
     "ctx3": lambda: ContextMix(max_order=3),
     "ctx4": lambda: ContextMix(max_order=4),
+    "match": lambda: MatchModel(),
 }

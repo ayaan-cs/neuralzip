@@ -12,9 +12,9 @@ import argparse
 import json
 import zlib
 
-import numpy as np
+from neuralzip.registry import MODELS  # first: pins BLAS to one thread before numpy loads
 
-from neuralzip.registry import MODELS
+import numpy as np  # noqa: E402
 
 TOPK = 6
 

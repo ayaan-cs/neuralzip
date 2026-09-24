@@ -1,5 +1,7 @@
 # neuralzip — lossless compression with a neural network that learns as it goes
 
+[![tests](https://github.com/ayaan-cs/neuralzip/actions/workflows/ci.yml/badge.svg)](https://github.com/ayaan-cs/neuralzip/actions/workflows/ci.yml)
+
 A from-scratch compressor (Python 3.12 + NumPy, no ML frameworks, nothing
 pre-trained) that beats `gzip -9`, `bzip2` and `xz` on text by replacing the
 *modelling* half of a compressor with a recurrent neural network trained
@@ -76,7 +78,7 @@ restated at LLM scale [[6]](#references).
 |---|---|
 | `neuralzip/coder.py` | 32-bit integer arithmetic coder after Witten, Neal & Cleary [[2]](#references): 16-bit frequencies, underflow ("pending bits") handling, 2-bit termination. |
 | `neuralzip/codec.py` | Model ⇄ coder glue. Quantises float probabilities to an integer table with every symbol ≥ 1. |
-| `neuralzip/models.py` | `Order0` (adaptive frequencies) and `ContextMix`: PPM-style blending of context orders with a Witten–Bell / PPM-C escape estimate [[7]](#references), [[8]](#references); sparse, packed storage for long contexts. |
+| `neuralzip/models.py` | `Order0` (adaptive frequencies); `ContextMix`: PPM-style blending of context orders with a Witten–Bell / PPM-C escape estimate [[7]](#references), [[8]](#references), sparse packed storage for long contexts; `MatchModel`: follows the last occurrence of the current context, with confidence learned per match length (the PAQ-family match model [[15]](#references)). |
 | `neuralzip/neural.py` | `GRUByteModel`: embed → GRU [[11]](#references) → softmax over 256 bytes. Hand-written forward *and* backward pass; truncated BPTT [[12]](#references) every 16 bytes; Adam [[13]](#references) with NNCP's settings; optional NNCP-v2-style periodic retraining. |
 | `neuralzip/mixing.py` | `GeoMixture`: geometric (log-linear) mixing [[14]](#references) with weights learned by online gradient descent on code length, the multi-symbol form of PAQ's logistic mixing [[15]](#references). `Mixture`: Bayesian / fixed-share mixture [[16]](#references), [[17]](#references), kept for comparison. |
 | `neuralzip.py` | CLI and container format (`NZ01`, model name, length, CRC-32, payload). |
@@ -226,6 +228,14 @@ in `visualizer/`.
   numerically: the coder's explicit overhead bound, the Bayesian mixture's
   `log₂ N` regret bound, the geometric mixer's gradient, its ability to sharpen,
   and the Witten–Bell equivalence.
+* `tests/test_match.py` — the match model predicts only from a byte-for-byte
+  verified context (never from a hash collision), abstains with the uniform
+  distribution when it has no match, learns to trust long matches more than
+  short ones, and — because a constant log-vector cancels in a softmax — moves
+  a geometric mixture by exactly nothing while it is silent.
+
+GitHub Actions runs the suite plus a full CLI round trip on 3.11, 3.12 and 3.13
+on every push (`.github/workflows/ci.yml`).
 
 ## References
 
