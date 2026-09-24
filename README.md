@@ -33,8 +33,10 @@ Requires `numpy` (and `pytest` for the tests). Nothing else.
 | ctx4 | 1.739 bpb (77% of gzip) | 1.666 bpb (90% of gzip) | 8.420 bpb (105% of gzip) |
 | ctx8 | 1.622 bpb (72% of gzip) | 1.616 bpb (87% of gzip) | 8.420 bpb (105% of gzip) |
 | ctx | 1.430 bpb (64% of gzip) | 1.456 bpb (78% of gzip) | 8.136 bpb (102% of gzip) |
-| gru | 1.935 bpb (86% of gzip) | 1.740 bpb (93% of gzip) | 8.045 bpb (101% of gzip) |
-| nz | 1.319 bpb (59% of gzip) | 1.342 bpb (72% of gzip) | 8.002 bpb (100% of gzip) |
+| gru | 1.935 bpb (86% of gzip) | 1.738 bpb (93% of gzip) | 8.045 bpb (101% of gzip) |
+| match | 3.391 bpb (151% of gzip) | 3.490 bpb (188% of gzip) | 8.000 bpb (100% of gzip) |
+| nz-nomatch | 1.319 bpb (59% of gzip) | 1.342 bpb (72% of gzip) | 8.002 bpb (100% of gzip) |
+| nz | 1.262 bpb (56% of gzip) | 1.299 bpb (70% of gzip) | 8.002 bpb (100% of gzip) |
 
 `bpb` = bits per byte of the original (8.0 = no compression). Every neuralzip
 row is decoded and compared byte-for-byte before being reported. Corpora:
@@ -82,7 +84,7 @@ restated at LLM scale [[6]](#references).
 | `neuralzip/codec.py` | Model ⇄ coder glue. Quantises float probabilities to an integer table with every symbol ≥ 1. |
 | `neuralzip/models.py` | `Order0` (adaptive frequencies); `ContextMix`: PPM-style blending of context orders with a Witten–Bell / PPM-C escape estimate [[7]](#references), [[8]](#references), sparse packed storage for long contexts; `MatchModel`: follows the last occurrence of the current context, with confidence learned per match length (the PAQ-family match model [[15]](#references)). |
 | `neuralzip/neural.py` | `GRUByteModel`: embed → GRU [[11]](#references) → softmax over 256 bytes. Hand-written forward *and* backward pass; truncated BPTT [[12]](#references) every 16 bytes; Adam [[13]](#references) with NNCP's settings; optional NNCP-v2-style periodic retraining. |
-| `neuralzip/mixing.py` | `GeoMixture`: geometric (log-linear) mixing [[14]](#references) with weights learned by online gradient descent on code length, the multi-symbol form of PAQ's logistic mixing [[15]](#references). `Mixture`: Bayesian / fixed-share mixture [[16]](#references), [[17]](#references), kept for comparison. |
+| `neuralzip/mixing.py` | `GeoMixture`: geometric (log-linear) mixing [[14]](#references) with weights learned by online gradient descent on code length, the multi-symbol form of PAQ's logistic mixing [[15]](#references); one weight vector per class of the previous byte. `Mixture`: Bayesian / fixed-share mixture [[16]](#references), [[17]](#references), kept for comparison. |
 | `neuralzip.py` | CLI and container format (`NZ01`, model name, length, CRC-32, payload). |
 | `bench.py`, `trace.py` | Benchmark table; JSON trace of per-byte predictions for the visualizer. |
 | `experiments/` | The sweep scripts behind every number in this README. |
@@ -143,6 +145,32 @@ second symbol appears. That halves memory for identical predictions (876 →
 368 MB for dense orders 0–16 on the 517 KB corpus), and the sparse ladder then
 gets to 201 MB with *better* predictions than dense order 16 (1.435 vs 1.451 bpb).
 
+### The match model: what happened last time this string appeared
+
+The ladder already counts what followed every context up to 24 bytes, so a
+third expert whose whole job is "find the last occurrence and read off what
+came next" sounds redundant. It is not — it is the largest single gain in this
+repo: 1.319 → 1.262 bpb on English, 1.342 → 1.299 on Python.
+
+A hash of the last 6 bytes points just past the most recent occurrence of that
+string. The bytes are then compared, so a hash collision can never drive a
+prediction (`tests/test_match.py` asserts that invariant over a real corpus).
+While the prediction keeps coming true the pointer advances and the match grows
+without bound — the PPM\* observation that long contexts are deterministic
+[[18]](#references), used the way the PAQ family uses it [[15]](#references).
+What it refuses to do is *assume* a confidence: hits and misses are counted per
+match length, so it learns for itself what a 6-byte match is worth against a
+32-byte one. A minimum length of 6 beat 12 by 0.009 bpb inside the mixture.
+
+Alone it is a poor compressor — 3.391 bpb on English, worse than order-4 counts
+— because it has an opinion about only part of the file. That is precisely why
+it belongs in the mixture and not in the ladder: with no match it returns the
+uniform distribution, whose logarithm is a constant vector, and a constant
+cancels in the softmax of a geometric mixture. **A silent expert costs
+nothing**, so an expert that is usually silent and occasionally near-certain is
+free to be exactly that. On `random.bin` it is the only model in the table that
+scores 8.000 bpb: it never finds a match, so it never bets.
+
 ### Why geometric mixing beats "pick the best expert"
 
 A Bayesian mixture `p = Σ w_i p_i` with posterior weights is guaranteed to be
@@ -159,10 +187,25 @@ has unconstrained weights: when two partly independent experts agree, the
 mixture becomes sharper than either (checked in the tests), and Mattern shows
 the weight optimisation is convex and that this is the rationale behind PAQ's
 logistic mixing [[14]](#references), [[15]](#references). On the English
-corpus the context model alone gets 1.43 bpb and the GRU alone 1.94, but the
-mixture gets 1.32. The learned weights also expose structure: an order-8 model
-added beside the deeper ladder receives a *negative* weight — the mixer uses
-it as a correction term, not a vote.
+corpus the context model alone gets 1.430 bpb, the GRU alone 1.935 and the
+match model alone 3.391 — and the mixture of the three gets 1.262. The learned
+weights also expose structure: an order-8 model added beside the deeper ladder
+receives a *negative* weight — the mixer uses it as a correction term, not a
+vote.
+
+The mixer keeps one weight vector per class of the previous byte (letter /
+digit / space / other) rather than one for the whole file, which is the kind of
+selection PAQ-style mixers use. That is worth reporting carefully, because
+**it depends on how many experts there are**: with two experts it is a clear
+loss (1.328 vs 1.319 bpb), and with three it is a gain on both text corpora
+(1.2593 vs 1.2609 on English, 1.2977 vs 1.3053 on Python). Splitting the
+weights costs every vector three quarters of its gradient steps, and with two
+experts there is not enough structure to buy that back. With the match model
+there is, and the weights say what it is: after a letter the mixer gives the
+match model ≈ 0.00 and leans on the ladder, but after a digit it gives it 0.25
+— mid-identifier and mid-number is exactly where "this string appeared before"
+is worth listening to. Toggle it with the `wctx` token in
+`experiments/sweep_full_mix.py`.
 
 ### What did not help (and is still in the code as an option)
 
@@ -176,15 +219,9 @@ it as a correction term, not a vote.
   megabyte there is little to re-learn.
 * **Bigger GRU** (192 or 256 units): no better at this data size; the
   learning curve, not capacity, is the bottleneck.
-* **Per-context mixer weights.** `GeoMixture` can hold one weight vector per
-  class of the previous byte (letter / digit / space / other) instead of one
-  for the whole file — the selection PAQ-style mixers use. On the headline
-  stack it is *worse*: 1.328 vs 1.319 bpb. What it learns is plausible enough
-  (after a letter the context model gets 1.42 and the GRU ≈ 0; after a space
-  the GRU goes slightly negative, i.e. the mixer uses it as a correction), but
-  each vector then sees roughly a quarter of the gradient steps, and at half a
-  megabyte that looks like too little to pay for the extra freedom. Available
-  as the `wctx` token in `experiments/sweep_full_mix.py`.
+* **A longer minimum match** (12 bytes instead of 6): 0.009 bpb worse in the
+  mixture. Short matches are frequent enough, and the learned per-length
+  confidence already discounts them.
 
 ## What the numbers mean
 
@@ -197,9 +234,15 @@ it as a correction term, not a vote.
 * `gru` alone loses to `ctx` on half a megabyte — a network trained from random
   init in one pass is data-hungry — but its per-segment learning curve is still
   falling at the end of the file while the context model's has flattened.
-* `nz` is the mixture. On random bytes it costs nothing: the context models
-  alone are 2–5% *worse* than raw (overconfident after one observation), but
-  the mixer learns within a few hundred bytes to give them no weight.
+* `match` alone is the worst text model in the table and the best one on
+  random bytes (exactly 8.000 bpb). Both facts have the same cause: it only
+  ever speaks when it has seen this string before.
+* `nz` is the mixture of all three. On random bytes it costs essentially
+  nothing — 8.0024 bpb, i.e. 10 bytes of overhead on 32 KB — even though the
+  context models alone are 2–5% *worse* than raw there (overconfident after
+  one observation); the mixer learns within a few hundred bytes to give them
+  no weight. `nz-nomatch` is the same mixture without the match model, kept
+  so that its contribution stays a measured number rather than a claim.
 
 ## Visualizer
 
@@ -216,13 +259,17 @@ in `visualizer/`.
 
 ## Limits, honestly
 
-* **Speed:** ~9 KB/s. The GRU forward pass is a handful of 128×384
-  matrix-vector products per byte in NumPy. NNCP's LSTM in a custom C library
-  ran at ~1 KB/s on *enwik9* with a model ~1000× larger [[9]](#references); cmix
-  needs 32 GB of RAM and 18 hours for enwik8 [[10]](#references). Neural
-  compression is slow by construction — every byte is a training step.
-* **Memory:** the context tables grow with the input (~200 MB on 517 KB).
-  Hashed, bounded tables (as in PAQ) would fix this at a small cost in ratio.
+* **Speed:** 2.2 KB/s in the cloud container the committed `results.json` was
+  measured in; ~9 KB/s on the laptop the first round of numbers came from. The
+  GRU forward pass is a handful of 128×384 matrix-vector products per byte in
+  NumPy, and the match model adds about 7% on top. NNCP's LSTM in a custom C
+  library ran at ~1 KB/s on *enwik9* with a model ~1000× larger
+  [[9]](#references); cmix needs 32 GB of RAM and 18 hours for enwik8
+  [[10]](#references). Neural compression is slow by construction — every byte
+  is a training step.
+* **Memory:** the context tables grow with the input (~200 MB on 517 KB), plus
+  a fixed 32 MB for the match model's hash table. Hashed, bounded tables (as in
+  PAQ) would fix the first at a small cost in ratio.
 * **Portability of archives:** an archive decodes correctly on the same
   NumPy/BLAS build. Different BLAS libraries can round differently, which would
   desynchronise the decoder — the same caveat NNCP carries [[9]](#references).

@@ -1,4 +1,3 @@
-
 | model | english.txt (517,537 B) | python.txt (293,103 B) | random.bin (32,768 B) |
 |---|---:|---:|---:|
 | gzip -9 | 2.251 bpb | 1.861 bpb | 8.004 bpb |
@@ -8,5 +7,7 @@
 | ctx4 | 1.739 bpb (77% of gzip) | 1.666 bpb (90% of gzip) | 8.420 bpb (105% of gzip) |
 | ctx8 | 1.622 bpb (72% of gzip) | 1.616 bpb (87% of gzip) | 8.420 bpb (105% of gzip) |
 | ctx | 1.430 bpb (64% of gzip) | 1.456 bpb (78% of gzip) | 8.136 bpb (102% of gzip) |
-| gru | 1.935 bpb (86% of gzip) | 1.740 bpb (93% of gzip) | 8.045 bpb (101% of gzip) |
-| nz | 1.319 bpb (59% of gzip) | 1.342 bpb (72% of gzip) | 8.002 bpb (100% of gzip) |
+| gru | 1.935 bpb (86% of gzip) | 1.738 bpb (93% of gzip) | 8.045 bpb (101% of gzip) |
+| match | 3.391 bpb (151% of gzip) | 3.490 bpb (188% of gzip) | 8.000 bpb (100% of gzip) |
+| nz-nomatch | 1.319 bpb (59% of gzip) | 1.342 bpb (72% of gzip) | 8.002 bpb (100% of gzip) |
+| nz | 1.262 bpb (56% of gzip) | 1.299 bpb (70% of gzip) | 8.002 bpb (100% of gzip) |
