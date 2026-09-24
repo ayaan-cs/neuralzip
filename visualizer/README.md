@@ -12,3 +12,11 @@ https://claude.ai/artifact/YbhHTJnx1YDDmvtYYfgN6g
 The interactive boards fetch `trace.json` (produced by `python trace.py` at the
 repo root) as an uploaded asset of the canvas; the `/_blob/...` URL in the
 sources refers to that upload and only resolves inside the artifact.
+
+The committed `trace.json` traces the two-expert mixture, i.e.
+`python trace.py --model nz-nomatch`, and the boards are written for those two
+experts: `Main.dc.html` and `Curve.dc.html` each carry a `titles`/`colors` map
+keyed by expert name. Regenerating the trace for the current headline model
+(`python trace.py`, which now also includes the match model) therefore needs a
+`match` entry added to both maps, and the new file re-uploaded to the canvas
+with the `/_blob/...` URLs repointed at it.

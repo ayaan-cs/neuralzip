@@ -1,6 +1,6 @@
 """Name -> factory for every model the CLI and benchmark can use."""
 from .mixing import GeoMixture
-from .models import ContextMix, Order0
+from .models import ContextMix, MatchModel, Order0
 from .neural import GRUByteModel
 
 # Context orders modelled by the headline context model: every order up to 6,
@@ -25,8 +25,11 @@ MODELS = {
     "ctx8": lambda: ContextMix(max_order=8),
     "ctx": ladder,
     "gru": lambda: GRUByteModel(**GRU_KW),
-    # the headline model: context ladder + online GRU, geometrically mixed
-    "nz": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW)], lr=0.005),
-    # same, plus NNCP-v2-style periodic retraining of the GRU (slower, no gain at <1 MB)
-    "nz-retrain": lambda: GeoMixture([ladder(), GRUByteModel(retrain_every=50_000, retrain_window=50_000, **GRU_KW)], lr=0.005),
+    "match": lambda: MatchModel(),
+    # the headline model: context ladder + online GRU + match model, geometrically mixed
+    "nz": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW), MatchModel()], lr=0.005),
+    # the same without the match model -- kept so its contribution stays measurable
+    "nz-nomatch": lambda: GeoMixture([ladder(), GRUByteModel(**GRU_KW)], lr=0.005),
+    # nz plus NNCP-v2-style periodic retraining of the GRU (slower, no gain at <1 MB)
+    "nz-retrain": lambda: GeoMixture([ladder(), GRUByteModel(retrain_every=50_000, retrain_window=50_000, **GRU_KW), MatchModel()], lr=0.005),
 }

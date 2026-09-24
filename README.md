@@ -64,11 +64,13 @@ equivalence is old [[4]](#references), [[5]](#references) and was recently
 restated at LLM scale [[6]](#references).
 
 ```
-                 ┌──────────────────┐
-   bytes ──┬───▶ │ context model    │──┐   log-linear      ┌────────────┐
-           │     │ (orders 0–24)    │  ├─▶ mixing ──▶ p(x) ─▶│ arithmetic │──▶ bits
-           ├───▶ │ GRU, online      │──┘   (weights learned) │   coder    │
-           │     └──────────────────┘                        └────────────┘
+                 ┌───────────────────────┐
+           ┌───▶ │ context model 0–24    │──┐
+           │     ├───────────────────────┤  │  log-linear         ┌────────────┐
+   bytes ──┼───▶ │ GRU, trained online   │──┼─▶ mixing ──▶ p(x) ─▶│ arithmetic │──▶ bits
+           │     ├───────────────────────┤  │  (weights learned)  │   coder    │
+           ├───▶ │ match model           │──┘                     └────────────┘
+           │     └───────────────────────┘
            └──────────── every model updates on the byte that actually arrived ──▶
 ```
 
@@ -174,6 +176,15 @@ it as a correction term, not a vote.
   megabyte there is little to re-learn.
 * **Bigger GRU** (192 or 256 units): no better at this data size; the
   learning curve, not capacity, is the bottleneck.
+* **Per-context mixer weights.** `GeoMixture` can hold one weight vector per
+  class of the previous byte (letter / digit / space / other) instead of one
+  for the whole file — the selection PAQ-style mixers use. On the headline
+  stack it is *worse*: 1.328 vs 1.319 bpb. What it learns is plausible enough
+  (after a letter the context model gets 1.42 and the GRU ≈ 0; after a space
+  the GRU goes slightly negative, i.e. the mixer uses it as a correction), but
+  each vector then sees roughly a quarter of the gradient steps, and at half a
+  megabyte that looks like too little to pay for the extra freedom. Available
+  as the `wctx` token in `experiments/sweep_full_mix.py`.
 
 ## What the numbers mean
 
@@ -195,7 +206,10 @@ it as a correction term, not a vote.
 `python trace.py` replays the headline model over the English corpus and
 writes `trace.json`: the per-segment learning curve of every expert plus, for a
 1.2 KB window, what each predictor expected next, the mixer weights and the
-bits paid for every byte. That file drives a three-board Claude Design canvas
+bits paid for every byte. (The committed `trace.json` — and so the boards —
+predate the match model: it is `python trace.py --model nz-nomatch`. See
+`visualizer/README.md` for what regenerating it involves.) That file drives a
+three-board Claude Design canvas
 (live byte-by-byte replay, learning curve, pipeline diagram):
 https://claude.ai/artifact/YbhHTJnx1YDDmvtYYfgN6g — the artboard sources are
 in `visualizer/`.
