@@ -2,8 +2,9 @@
 "boards":{
 "Main.dc.html":{"x":0,"y":0,"w":1280,"h":820,"title":"Live replay","is_interactive":true},
 "Curve.dc.html":{"x":1360,"y":0,"w":1280,"h":640,"title":"Learning curve","is_interactive":true},
-"Pipeline.dc.html":{"x":0,"y":940,"w":1280,"h":720,"title":"How it works"}
+"Pipeline.dc.html":{"x":0,"y":940,"w":1280,"h":720,"title":"How it works"},
+"Story.dc.html":{"x":1403,"y":1047,"w":1280,"h":820,"title":"Five scenes","is_interactive":true}
 },
-"order":["Main.dc.html","Curve.dc.html","Pipeline.dc.html"],
+"order":["Main.dc.html","Curve.dc.html","Pipeline.dc.html","Story.dc.html"],
 "notes":{"t1":{"x":0,"y":-260,"text":"neuralzip — compression is prediction","kind":"title1","maxW":2640}},
 "designSystems":[]}
