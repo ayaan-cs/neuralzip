@@ -252,10 +252,16 @@ writes `trace.json`: the per-segment learning curve of every expert plus, for a
 bits paid for every byte. (The committed `trace.json` — and so the boards —
 predate the match model: it is `python trace.py --model nz-nomatch`. See
 `visualizer/README.md` for what regenerating it involves.) That file drives a
-three-board Claude Design canvas
-(live byte-by-byte replay, learning curve, pipeline diagram):
-https://claude.ai/artifact/YbhHTJnx1YDDmvtYYfgN6g — the artboard sources are
-in `visualizer/`.
+four-board Claude Design canvas — live byte-by-byte replay, learning curve,
+pipeline diagram, and an animated five-scene walkthrough:
+https://claude.ai/artifact/YbhHTJnx1YDDmvtYYfgN6g
+
+The artboard sources are in `visualizer/`; the animated walkthrough has its own
+directory, `playback/`. The boards were built in an AI design workspace (Claude
+Design) rather than hand-written, because the one thing this README cannot do is
+show the mechanism *moving* — the point of `playback/Story.dc.html` is to let
+you watch a model pay for a byte, change its mind about which expert to trust,
+and run up a bill, instead of reading that it does.
 
 ## Limits, honestly
 
