@@ -298,6 +298,20 @@ in `visualizer/`.
 GitHub Actions runs the suite plus a full CLI round trip on 3.11, 3.12 and 3.13
 on every push (`.github/workflows/ci.yml`).
 
+## Licence
+
+The code is MIT (`LICENSE`). Everything it depends on is free to use, and
+nothing here is vendored from a source that would restrict that:
+
+* **Dependencies:** NumPy (BSD-3-Clause) at runtime, pytest (MIT) for the
+  tests. Nothing else — no ML framework, no pre-trained weights.
+* **Corpora:** `corpora/english.txt` and `corpora/python.txt` are verbatim
+  extracts from CPython, © Python Software Foundation, redistributed under the
+  PSF License Agreement and **not** under this repository's MIT licence. See
+  `corpora/README.md`.
+* **Fonts:** the visualizer boards load Newsreader and IBM Plex from Google
+  Fonts (SIL Open Font License); no font files are redistributed here.
+
 ## References
 
 1. C. E. Shannon, "A Mathematical Theory of Communication," *Bell System Technical Journal* 27, 1948.
