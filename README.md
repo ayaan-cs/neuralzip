@@ -2,6 +2,13 @@
 
 [![tests](https://github.com/ayaan-cs/neuralzip/actions/workflows/ci.yml/badge.svg)](https://github.com/ayaan-cs/neuralzip/actions/workflows/ci.yml)
 
+![Five scenes from a real trace: the model betting on each byte, the two experts
+disagreeing, the mixer learning who to trust, the bits adding up, and the
+learning curve over half a megabyte](playback/story.gif)
+
+*A real trace, not an illustration — every figure on those boards is read from
+`trace.json`. Source and notes in [`playback/`](playback/).*
+
 A from-scratch compressor (Python 3.12 + NumPy, no ML frameworks, nothing
 pre-trained) that beats `gzip -9`, `bzip2` and `xz` on text by replacing the
 *modelling* half of a compressor with a recurrent neural network trained
@@ -11,15 +18,24 @@ stays in lock-step with the encoder — the construction used by NNCP [[9]](#ref
 and cmix [[10]](#references), scaled down to something readable in an afternoon.
 
 ```
-python make_corpora.py                          # builds corpora/ from files already on the machine
-python neuralzip.py compress   corpora/english.txt out.nz
-python neuralzip.py decompress out.nz restored.txt
+python -m pytest tests                          # coder, gradient checks, theory bounds, round trips (~20 s)
+python bench.py --limit 20000                   # the whole table on 20 KB slices (~1 min)
+
+python neuralzip.py compress   corpora/english.txt out.nz   # 517 KB at 2–9 KB/s: 1–4 minutes
+python neuralzip.py decompress out.nz restored.txt          # about as long again
 python neuralzip.py info       out.nz
-python bench.py                                 # full table, every model round-trip verified
-python -m pytest tests                          # coder, gradient checks, theory bounds, round trips
+
+python bench.py                                 # the real table: every model × every corpus, ~40 min
 ```
 
 Requires `numpy` (and `pytest` for the tests). Nothing else.
+
+**It is slow by construction** — every byte is a training step, so this runs at
+kilobytes per second, not megabytes. Start with `--limit` or a file of a few
+tens of kilobytes. The corpora are committed, so nothing needs downloading or
+generating; `python make_corpora.py` rebuilds them from the CPython on *this*
+machine, which under a different Python version yields different bytes and so
+different numbers than the table below — see `corpora/README.md`.
 
 ## Results
 
@@ -213,8 +229,12 @@ is worth listening to. Toggle it with the `wctx` token in
 * **NNCP-v2-style periodic retraining** [[19]](#references) — every 50 KB, one
   extra pass over the last 50 KB at half the learning rate: the GRU alone
   improves (2.33 → 2.27 bpb on 200 KB), but inside the mixture the gain
-  vanishes (1.322 vs 1.319) while costing 1.6× the time. Available as
-  `--model nz-retrain`. Bellard reports large gains from retraining, but with
+  vanishes (1.322 vs 1.319) while costing 1.6× the time. Both of those figures
+  are the *two-expert* mixture, measured before the match model existed: they
+  compare retraining against no retraining, not against the 1.262 bpb headline
+  in the table above, and the experiment has not been repeated for the
+  three-expert stack. Available as `--model nz-retrain`, which does now carry
+  the match model too. Bellard reports large gains from retraining, but with
   a Transformer, tens of megabytes of history and many "epochs"; at half a
   megabyte there is little to re-learn.
 * **Bigger GRU** (192 or 256 units): no better at this data size; the

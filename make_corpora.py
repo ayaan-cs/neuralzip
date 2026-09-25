@@ -1,9 +1,26 @@
-"""Build the benchmark corpora from files already on this machine (no downloads)."""
+"""Build the benchmark corpora from files already on this machine (no downloads).
+
+The corpora are committed, and every number in the README was measured against
+those exact bytes.  Rebuilding them here uses whatever CPython is running, so a
+different Python version produces different files and different bits-per-byte
+figures -- which is why overwriting the committed ones takes --force.
+"""
 import os
 import random
 import sys
 
 import pydoc_data.topics
+
+BUILT = ("corpora/english.txt", "corpora/python.txt", "corpora/random.bin")
+existing = [p for p in BUILT if os.path.exists(p)]
+if existing and "--force" not in sys.argv:
+    sys.exit(
+        "corpora/ already holds the committed reference files:\n  "
+        + "\n  ".join(existing)
+        + "\n\nRebuilding them from this machine's CPython "
+        f"(currently {sys.version.split()[0]}) would change the\nbytes that every number in the "
+        "README refers to. Re-run with --force if that is\nwhat you want."
+    )
 
 os.makedirs("corpora", exist_ok=True)
 

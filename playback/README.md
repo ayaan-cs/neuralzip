@@ -5,6 +5,12 @@ compressor does, played against a real trace rather than an illustration.
 It is the fourth board of the project canvas:
 https://claude.ai/artifact/YbhHTJnx1YDDmvtYYfgN6g
 
+![The five scenes](story.gif)
+
+`story.gif` is one full loop of the board, captured headlessly at 760 px and
+played back at 2.5×, so the README shows the thing moving without requiring
+access to the canvas.
+
 | scene | what it shows |
 |---|---|
 | 1. Every byte is a bet | Bytes stream in heat-mapped by what they cost; the mixture's top guesses, the byte that actually arrived, and the −log₂ p charged for it |
